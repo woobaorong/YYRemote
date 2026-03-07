@@ -17,7 +17,7 @@
   },
   "build": {
     "appId": "ws.input.app",
-    "productName": "WSInput",
+    "productName": "YYRemote",
     "win": {
       "target": "portable",
       "icon": "icon.ico"
