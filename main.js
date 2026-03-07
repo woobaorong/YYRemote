@@ -144,7 +144,6 @@ function startHttpServer() {
 
   server.listen(PORT, "0.0.0.0", () => {
     console.log(`HTTP Server running: http://localhost:${PORT}`)
-    console.log(`局域网访问: http://<你的IP>:${PORT}`)
   })
 }
 
