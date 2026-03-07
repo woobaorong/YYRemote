@@ -1,11 +1,136 @@
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
-<meta charset="UTF-8">
-<title>YYRemote</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YYRemote</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      padding: 30px;
+      margin: 0;
+      background: #f0f2f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    h2 {
+      color: #333;
+      font-size: 20px;
+      margin: 0 0 10px 0;
+    }
+    .status {
+      color: #34a853;
+      font-weight: 500;
+      margin-bottom: 20px;
+    }
+    #qrcode {
+      padding: 20px;
+      background: white;
+      border-radius: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+    #qrcode img {
+      border-radius: 8px;
+    }
+    .tip {
+      color: #666;
+      font-size: 13px;
+      margin-top: 15px;
+    }
+    .clients {
+      margin-top: 20px;
+      background: white;
+      border-radius: 10px;
+      padding: 15px;
+      width: 100%;
+      max-width: 320px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .clients-header {
+      font-size: 13px;
+      color: #666;
+      margin-bottom: 10px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .clients-count {
+      float: right;
+      background: #e8f0fe;
+      color: #1a73e8;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 12px;
+    }
+    .client-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      font-size: 13px;
+    }
+    .client-ip {
+      color: #333;
+      font-family: monospace;
+    }
+    .client-time {
+      color: #999;
+      font-size: 11px;
+    }
+    .no-clients {
+      text-align: center;
+      color: #999;
+      font-size: 13px;
+      padding: 10px 0;
+    }
+  </style>
 </head>
 <body>
-<pre id="log"></pre>
-<script src="renderer.js"></script>
+  <h2>YYRemote</h2>
+  <div class="status">● 运行中</div>
+  <div id="qrcode"></div>
+  <div class="tip">扫码打开客户端</div>
+  
+  <div class="clients">
+    <div class="clients-header">
+      当前连接
+      <span class="clients-count" id="clientsCount">0</span>
+    </div>
+    <div id="clientsList">
+      <div class="no-clients">暂无连接</div>
+    </div>
+  </div>
+
+  <script>
+    window.api.getIP().then(data => {
+      const img = document.createElement("img")
+      img.src = data.qrDataUrl
+      document.getElementById("qrcode").appendChild(img)
+      updateClients(data.clients)
+    })
+    
+    window.api.onClientsUpdate(updateClients)
+    
+    function updateClients(clients) {
+      const listEl = document.getElementById("clientsList")
+      const countEl = document.getElementById("clientsCount")
+      
+      countEl.textContent = clients.length
+      
+      if (clients.length === 0) {
+        listEl.innerHTML = '<div class="no-clients">暂无连接</div>'
+        return
+      }
+      
+      listEl.innerHTML = clients.map(c => `
+        <div class="client-item">
+          <span class="client-ip">${c.ip}</span>
+          <span class="client-time">${c.connectTime}</span>
+        </div>
+      `).join('')
+    }
+  </script>
 </body>
 </html>

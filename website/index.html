@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YYRemote手机输入助手</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      max-width: 600px;
+      margin: 20px auto;
+      padding: 0 15px;
+    }
+    h2 { color: #333; }
+    .input-group {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 15px;
+      justify-content: flex-end;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+    }
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    button.connect { background: #4CAF50; color: white; }
+    button.disconnect { background: #f44336; color: white; }
+    button.send { background: #2196F3; color: white; font-size: 16px; padding: 12px 45px; min-width: 150px; }
+    button:hover { opacity: 0.9; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    textarea {
+      width: 100%;
+      height: 150px;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-size: 14px;
+      resize: vertical;
+    }
+    .log {
+      background: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      height: 200px;
+      overflow-y: auto;
+      font-family: monospace;
+      font-size: 12px;
+    }
+    .log .msg { margin: 3px 0; }
+    .log .sent { color: #2196F3; }
+    .log .received { color: #4CAF50; }
+    .log .system { color: #666; }
+    .log .error { color: #f44336; }
+    .url-box {
+      flex: 1;
+      padding: 10px;
+      background: #e8f0fe;
+      border-radius: 4px;
+      font-family: monospace;
+      font-size: 14px;
+      color: #1a73e8;
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+    .status.connected { background: #d4edda; color: #155724; }
+    .status.disconnected { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <h2>YYRemote手机输入助手</h2>
+  
+  <div id="status" class="status disconnected">未连接</div>
+  
+  <div class="input-group">
+    <div id="wsUrl" class="url-box">加载中...</div>
+    <button id="connectBtn" class="connect" onclick="toggleConnect()">连接</button>
+  </div>
+  
+  <h3>发送消息</h3>
+  <textarea id="message" placeholder="输入要发送的文本..."></textarea>
+  <div class="input-group" style="margin-top: 10px;">
+    <button onclick="clearLog()">清空日志</button>
+    <button id="sendBtn" class="send" onclick="sendMessage()" disabled>发送</button>
+  </div>
+  
+  <h3>日志</h3>
+  <div id="log" class="log"></div>
+
+  <script>
+    let ws = null
+
+    // 自动填充当前服务器的 WebSocket 地址
+    const host = window.location.hostname
+    const wsUrl = `ws://${host}:8080`
+    document.getElementById('wsUrl').textContent = wsUrl
+
+    function log(msg, type = 'system') {
+      const logDiv = document.getElementById('log')
+      const time = new Date().toLocaleTimeString()
+      const span = document.createElement('div')
+      span.className = `msg ${type}`
+      span.textContent = `[${time}] ${msg}`
+      logDiv.insertBefore(span, logDiv.firstChild)
+    }
+
+    function updateStatus(connected) {
+      const statusEl = document.getElementById('status')
+      const connectBtn = document.getElementById('connectBtn')
+      const sendBtn = document.getElementById('sendBtn')
+      
+      if (connected) {
+        statusEl.textContent = '已连接'
+        statusEl.className = 'status connected'
+        connectBtn.textContent = '断开'
+        connectBtn.className = 'disconnect'
+        sendBtn.disabled = false
+      } else {
+        statusEl.textContent = '未连接'
+        statusEl.className = 'status disconnected'
+        connectBtn.textContent = '连接'
+        connectBtn.className = 'connect'
+        sendBtn.disabled = true
+      }
+    }
+
+    function toggleConnect() {
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.close()
+      } else {
+        connect()
+      }
+    }
+
+    function connect() {
+      const url = document.getElementById('wsUrl').textContent.trim()
+      
+      log(`正在连接 ${url}...`)
+      
+      try {
+        ws = new WebSocket(url)
+        
+        ws.onopen = () => {
+          log('连接成功', 'received')
+          updateStatus(true)
+        }
+        
+        ws.onmessage = (event) => {
+          log(`收到: ${event.data}`, 'received')
+        }
+        
+        ws.onerror = (error) => {
+          log('连接错误', 'error')
+        }
+        
+        ws.onclose = () => {
+          log('连接已关闭', 'system')
+          updateStatus(false)
+          ws = null
+        }
+      } catch (e) {
+        log(`连接失败: ${e.message}`, 'error')
+      }
+    }
+
+    function sendMessage() {
+      const message = document.getElementById('message').value
+      if (!message) return
+      
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(message)
+        log(`发送: ${message}`, 'sent')
+        document.getElementById('message').value = ''
+      } else {
+        log('未连接，无法发送', 'error')
+      }
+    }
+
+    function clearLog() {
+      document.getElementById('log').innerHTML = ''
+    }
+
+    // 回车发送
+    document.getElementById('message').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && e.ctrlKey) {
+        sendMessage()
+      }
+    })
+  </script>
+</body>
+</html>

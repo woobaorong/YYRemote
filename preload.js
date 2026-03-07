@@ -2,12 +2,10 @@ const { contextBridge, ipcRenderer } = require("electron")
 
 contextBridge.exposeInMainWorld("api", {
 
-  setWS(url) {
-    ipcRenderer.send("set-ws", url)
-  },
+  getIP: () => ipcRenderer.invoke("get-ip"),
 
-  onStatus(cb) {
-    ipcRenderer.on("status", (e, msg) => cb(msg))
+  onClientsUpdate: (callback) => {
+    ipcRenderer.on("clients-update", (e, clients) => callback(clients))
   }
 
 })
