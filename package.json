@@ -1,0 +1,29 @@
+{
+  "name": "YYRemote",
+  "version": "1.0.0",
+  "description": "xxxxxxxx",
+  "main": "main.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "electron": "^40.8.0",
+    "ws": "^8.19.0"
+  },
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "build": {
+    "appId": "ws.input.app",
+    "productName": "WSInput",
+    "win": {
+      "target": "portable",
+      "icon": "icon.ico"
+    }
+  },
+  "devDependencies": {
+    "electron-builder": "^26.8.1"
+  }
+}
