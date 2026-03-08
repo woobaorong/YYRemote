@@ -68,11 +68,16 @@ function createTray() {
   })
 }
 
-function pasteText(text) {
+function pasteText(text, autoEnter = true) {
+  //console.log("pasteText 被调用，text:", text, "autoEnter:", autoEnter)
   try {
     clipboard.writeText(text)
     setTimeout(() => {
-      exec(`powershell -command "$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v')"`, (error) => {
+      let psCmd = `$wshell = New-Object -ComObject wscript.shell; $wshell.SendKeys('^v')`
+      if (autoEnter) {
+        psCmd += `; Start-Sleep -Milliseconds 50; $wshell.SendKeys('{ENTER}')`
+      }
+      exec(`powershell -command "${psCmd}"`, (error) => {
         if (error) {
           console.error('粘贴失败:', error.message)
         }
@@ -91,9 +96,9 @@ function updateClients() {
 
 function startWSServer() {
 
-  const wss = new WebSocket.Server({ host: "0.0.0.0", port: 8080 })
+  const wss = new WebSocket.Server({ host: "0.0.0.0", port: 8090 })
 
-  console.log("WS Server running: 8080")
+  console.log("WS Server running: 8090")
 
   wss.on("connection", (ws, req) => {
     // 获取客户端 IP
@@ -104,8 +109,16 @@ function startWSServer() {
     updateClients()
 
     ws.on("message", (data) => {
-      const text = data.toString()
-      pasteText(text)
+      const raw = data.toString()
+      console.log("收到原始数据:", raw)
+      try {
+        const msg = JSON.parse(raw)
+        console.log("解析结果:", msg)
+        pasteText(msg.text, msg.autoEnter)
+      } catch (e) {
+        console.log("JSON解析失败，使用原始文本:", e.message)
+        pasteText(raw, true)
+      }
     })
 
     ws.on("close", () => {
