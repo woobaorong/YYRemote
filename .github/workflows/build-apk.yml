@@ -22,8 +22,6 @@ on:
 env:
   JAVA_VERSION: '17'
   NODE_VERSION: '20'
-  ANDROID_API_LEVEL: '34'
-  ANDROID_BUILD_TOOLS: '34.0.0'
 
 jobs:
   build-android:
@@ -46,45 +44,68 @@ jobs:
       
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
-        with:
-          api-level: ${{ env.ANDROID_API_LEVEL }}
-          build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
       
       - name: Install npm dependencies
-        run: npm install
+        run: |
+          npm install
+          echo "Installed packages:"
+          ls node_modules/@capacitor/ || echo "Capacitor packages not found"
+          npx --version
+          node -v
+          npm -v
       
-      - name: Initialize Capacitor Android
-        run: npx cap add android
+      - name: Initialize Capacitor Android project
+        run: |
+          echo "Creating Capacitor Android project..."
+          
+          # 使用 npm exec 替代 npx，更可靠
+          if [ -d "node_modules/.bin" ]; then
+            echo "Using local Capacitor CLI"
+            ./node_modules/.bin/cap add android
+          else
+            echo "Falling back to npx"
+            npx @capacitor/cli@latest add android
+          fi
+          
+          echo "Android directory created:"
+          ls -la android/
       
-      - name: Sync Capacitor
-        run: npx cap sync android
+      - name: Sync web assets to Android
+        run: |
+          if [ -d "node_modules/.bin" ]; then
+            ./node_modules/.bin/cap sync android
+          else
+            npx @capacitor/cli@latest sync android
+          fi
       
       - name: Build Gradle (Debug)
         if: ${{ inputs.build_type != 'release' }}
+        working-directory: android
         run: |
-          cd android
           chmod +x gradlew
-          ./gradlew assembleDebug
+          ./gradlew assembleDebug --stacktrace
       
       - name: Build Gradle (Release)
         if: ${{ inputs.build_type == 'release' }}
+        working-directory: android
         run: |
-          cd android
           chmod +x gradlew
-          ./gradlew assembleRelease
+          ./gradlew assembleRelease --stacktrace
       
       - name: Upload APK (Debug)
         if: ${{ inputs.build_type != 'release' }}
         uses: actions/upload-artifact@v4
         with:
-          name: YYRemote-Android-Debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: YYRemote-Android-Debug-${{ github.run_id }}
+          path: android/app/build/outputs/apk/debug/*.apk
           retention-days: 30
+          if-no-files-found: error
       
       - name: Upload APK (Release)
         if: ${{ inputs.build_type == 'release' }}
         uses: actions/upload-artifact@v4
         with:
-          name: YYRemote-Android-Release
-          path: android/app/build/outputs/apk/release/app-release-unsigned.apk
+          name: YYRemote-Android-Release-${{ github.run_id }}
+          path: android/app/build/outputs/apk/release/*.apk
           retention-days: 30
+          if-no-files-found: error
