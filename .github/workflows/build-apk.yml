@@ -37,7 +37,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
       
       - name: Setup JDK
         uses: actions/setup-java@v4
@@ -52,7 +51,7 @@ jobs:
           build-tools: ${{ env.ANDROID_BUILD_TOOLS }}
       
       - name: Install npm dependencies
-        run: npm ci
+        run: npm install
       
       - name: Initialize Capacitor Android
         run: npx cap add android
