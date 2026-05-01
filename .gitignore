@@ -22,3 +22,14 @@ selenium-debug.log
 
 package-lock.json
 yarn.lock
+
+# Capacitor / Android (generated during build)
+android/
+ios/
+
+# Build outputs
+*.apk
+*.aab
+
+# Local config overrides
+capacitor.config.override.json

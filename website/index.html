@@ -66,11 +66,21 @@
     .url-box {
       flex: 1;
       padding: 10px;
-      background: #e8f0fe;
+      background: #ffffff;
+      border: 1px solid #ddd;
       border-radius: 4px;
       font-family: monospace;
       font-size: 14px;
-      color: #1a73e8;
+      color: #333;
+    }
+    .url-box:focus {
+      outline: none;
+      border-color: #1a73e8;
+      box-shadow: 0 0 0 2px rgba(26, 115, 232, 0.2);
+    }
+    .url-box::placeholder {
+      color: #999;
+      font-family: sans-serif;
     }
     .status {
       padding: 8px 12px;
@@ -99,7 +109,7 @@
   <div id="status" class="status disconnected">未连接</div>
   
   <div class="input-group">
-    <div id="wsUrl" class="url-box">加载中...</div>
+    <input type="text" id="wsUrl" class="url-box" placeholder="请输入服务器地址，如: ws://192.168.1.100:8090">
     <button id="connectBtn" class="connect" onclick="toggleConnect()">连接</button>
   </div>
   
@@ -119,11 +129,28 @@
 
   <script>
     let ws = null
+    const STORAGE_KEY = 'yyremote_last_server'
 
-    // 自动填充当前服务器的 WebSocket 地址
-    const host = window.location.hostname
-    const wsUrl = `ws://${host}:8090`
-    document.getElementById('wsUrl').textContent = wsUrl
+    function initServerUrl() {
+      const input = document.getElementById('wsUrl')
+      const savedUrl = localStorage.getItem(STORAGE_KEY)
+      
+      const host = window.location.hostname
+      if (host && host !== 'localhost' && !host.startsWith('127.') && host !== '') {
+        const suggestedUrl = `ws://${host}:8090`
+        input.value = savedUrl || suggestedUrl
+      } else {
+        input.value = savedUrl || ''
+      }
+      
+      input.addEventListener('blur', () => {
+        if (input.value.trim()) {
+          localStorage.setItem(STORAGE_KEY, input.value.trim())
+        }
+      })
+    }
+
+    initServerUrl()
 
     function log(msg, type = 'system') {
       const logDiv = document.getElementById('log')
@@ -163,7 +190,13 @@
     }
 
     function connect() {
-      const url = document.getElementById('wsUrl').textContent.trim()
+      const urlInput = document.getElementById('wsUrl')
+      const url = urlInput.value.trim()
+      
+      if (!url) {
+        log('请先输入服务器地址', 'error')
+        return
+      }
       
       log(`正在连接 ${url}...`)
       
@@ -173,6 +206,7 @@
         ws.onopen = () => {
           log('连接成功', 'received')
           updateStatus(true)
+          localStorage.setItem(STORAGE_KEY, url)
         }
         
         ws.onmessage = (event) => {

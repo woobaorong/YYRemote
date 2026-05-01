@@ -12,15 +12,58 @@ let tray
 let clients = new Map() // 存储客户端连接
 let clientId = 0
 
+function isPrivateLAN(ip) {
+  const parts = ip.split(".").map(Number)
+  if (parts.length !== 4) return false
+  
+  if (parts[0] === 10) return true
+  if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true
+  if (parts[0] === 192 && parts[1] === 168) return true
+  return false
+}
+
+function isLinkLocal(ip) {
+  const parts = ip.split(".").map(Number)
+  return parts[0] === 169 && parts[1] === 254
+}
+
+function isLoopback(ip) {
+  return ip.startsWith("127.")
+}
+
 function getLocalIP() {
   const interfaces = os.networkInterfaces()
+  const candidates = []
+
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name]) {
       if (iface.family === "IPv4" && !iface.internal) {
-        return iface.address
+        const ip = iface.address
+        
+        if (isLoopback(ip) || isLinkLocal(ip)) {
+          continue
+        }
+
+        let priority = 0
+        if (isPrivateLAN(ip)) {
+          priority = 3
+        } else if (name.toLowerCase().includes("ethernet") || name.toLowerCase().includes("以太网")) {
+          priority = 2
+        } else if (name.toLowerCase().includes("wi-fi") || name.toLowerCase().includes("wifi") || name.toLowerCase().includes("无线")) {
+          priority = 1
+        }
+        
+        candidates.push({ ip, priority, name })
       }
     }
   }
+
+  if (candidates.length > 0) {
+    candidates.sort((a, b) => b.priority - a.priority)
+    console.log("Available IP candidates (sorted by priority):", candidates)
+    return candidates[0].ip
+  }
+
   return "127.0.0.1"
 }
 
